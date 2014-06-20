@@ -1,0 +1,4 @@
+playbackbonejs
+==============
+
+Play Framework + BackboneJS
