@@ -2,5 +2,4 @@
 
 require:
     - play
-    - play -> crud
     - org.codehaus.jackson -> jackson-mapper-asl 1.9.13
