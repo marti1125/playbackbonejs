@@ -193,12 +193,45 @@ public abstract class CRUD extends Controller {
     @Retention(RetentionPolicy.RUNTIME)
     @Target(ElementType.FIELD)
     public @interface Hidden {}
+    
+    @Retention(RetentionPolicy.RUNTIME)
+	@Target(ElementType.FIELD)
+	public @interface Icon {
+		String value();
+	}
+    
+    @Retention(RetentionPolicy.RUNTIME)
+	@Target(ElementType.FIELD)
+	public @interface BackGridCellType {
+		 public String cell();
+	}
+    
+    @Retention(RetentionPolicy.RUNTIME)
+	@Target(ElementType.FIELD)
+	public @interface Readonly {
+	}
+    
+    @Retention(RetentionPolicy.RUNTIME)
+	@Target(ElementType.FIELD)
+	public @interface Formatter {
+		 public String formatter();
+	}
 
     // ~~~~~~~~~~~~~
     static int getPageSize() {
         return Integer.parseInt(Play.configuration.getProperty("crud.pageSize", "30"));
     }
-
+    
+    public static class BackgridField{
+		public String name;
+		public String cell;
+		public String formatter;
+		public boolean readOnly;
+		public boolean required;
+		public String icon;
+		public String validation;
+	}
+    
     public static class ObjectType implements Comparable<ObjectType> {
 
         public Class<? extends Controller> controllerClass;
@@ -407,6 +440,73 @@ public abstract class CRUD extends Controller {
                 return property.choices.list();
             }
         }
+        
+        public List<BackgridField> getFieldsForTable(String clase) throws ClassNotFoundException{
+    		ObjectType type = ObjectType.get(getControllerClass());
+    		//Model.Property property : listProperties()
+    		Field[] classFields;
+    		
+    		if(clase != null)
+    		{
+    		    Class<?> cls = Class.forName(clase);
+    			classFields = cls.getFields();
+    		}
+    		else
+    		{
+    			classFields = type.entityClass.getFields();
+    		}
+    		
+    		List<BackgridField> fields = new ArrayList<BackgridField>();
+    		for (Field f : classFields) {
+    			if (f.isAnnotationPresent(BackGridCellType.class)) {
+    						BackgridField tft = new BackgridField();	
+    						
+    						String cell = ((BackGridCellType)f.getAnnotation(BackGridCellType.class)).cell();
+    						
+     						String formatter = null;
+    						if(f.getAnnotation(Formatter.class) != null)
+    						{
+    							formatter = ((Formatter)f.getAnnotation(Formatter.class)).formatter();
+    						}
+    							
+    						if(f.getAnnotation(Readonly.class) != null)
+    						{
+    							tft.readOnly = true;
+    						}
+    						
+    						if(f.getAnnotation(Required.class) != null)
+    						{
+    							tft.required = true;
+    						}
+    						
+    						if(f.getAnnotation(Icon.class) != null)
+    						{
+    		 					tft.icon = ((Icon)f.getAnnotation(Icon.class)).value();
+    						}
+    						
+    						//tft.validation = getBackBoneValidationString(f);
+    						
+    						tft.name = f.getName();
+    						tft.cell = cell;
+    						tft.formatter = formatter;
+    						
+    			
+    						fields.add(tft);
+    					//}
+    				//}
+    			}
+    		}
+    		return fields;
+    	}
+        
     }
+    
+    public static void generateBackGrid(String url, String clase) throws ClassNotFoundException{
+		ObjectType type = ObjectType.get(getControllerClass());
+		List<BackgridField> tableFields = type.getFieldsForTable(clase);
+		String className = type.modelName.toLowerCase();
+		render("CRUD/generateBackgrid.js", tableFields, className,url);
+	}
+    
 }
 
